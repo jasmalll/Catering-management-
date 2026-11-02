@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import '../providers/catering_provider.dart';
 import '../models/catering_models.dart';
@@ -35,7 +36,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
   }
 
   @override
-<<<<<<< HEAD
+
   void initState() {
     super.initState();
     _scrollController.addListener(_handleScroll);
@@ -46,10 +47,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
     _searchController.dispose();
     _scrollController.removeListener(_handleScroll);
     _scrollController.dispose();
-=======
-  void dispose() {
-    _searchController.dispose();
->>>>>>> ebb833fe9c35acb301f755af74cb996f7ffab70c
+
     super.dispose();
   }
 
@@ -83,15 +81,13 @@ class _ExpensesPageState extends State<ExpensesPage> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-<<<<<<< HEAD
+
       floatingActionButton: AnimatedScale(
         scale: _showFab ? 1 : 0,
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
         child: FloatingActionButton.extended(
-=======
-      floatingActionButton: FloatingActionButton.extended(
->>>>>>> ebb833fe9c35acb301f755af74cb996f7ffab70c
+
         elevation: 4,
         backgroundColor: scheme.primary,
         foregroundColor: isDark ? Colors.black : Colors.white,
@@ -103,10 +99,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-<<<<<<< HEAD
+
           controller: _scrollController,
-=======
->>>>>>> ebb833fe9c35acb301f755af74cb996f7ffab70c
+
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
           child: Column(

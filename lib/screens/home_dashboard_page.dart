@@ -175,10 +175,10 @@ class HomeDashboardPage extends StatelessWidget {
 }
 
 class _HeaderIcon extends StatelessWidget {
-  const _HeaderIcon({required this.icon, required this.onTap, this.rotationTurns = 0});
+  const _HeaderIcon({required this.icon, required this.onTap, this.rotationTurns = 0.0});
   final IconData icon;
   final VoidCallback onTap;
-  final int rotationTurns;
+  final double rotationTurns;
   @override
   Widget build(BuildContext context) => Material(
     color: Theme.of(context).cardColor,
@@ -261,20 +261,22 @@ class _RecentWorkCard extends StatelessWidget {
 
 /// Lightweight number animation; keeps the existing displayed value and formatting.
 class _AnimatedValueText extends StatelessWidget {
-  const _AnimatedValueText({required this.value, this.style});
+  const _AnimatedValueText({required this.value, this.style, this.maxLines, this.overflow});
   final String value;
   final TextStyle? style;
+  final int? maxLines;
+  final TextOverflow? overflow;
 
   @override
   Widget build(BuildContext context) {
     final numeric = double.tryParse(value.replaceAll(RegExp(r'[^0-9.\-]'), ''));
-    if (numeric == null) return Text(value, style: style);
+    if (numeric == null) return Text(value, style: style, maxLines: maxLines, overflow: overflow);
     final prefix = value.startsWith('₹') ? '₹' : '';
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0, end: numeric),
       duration: const Duration(milliseconds: 850),
       curve: Curves.easeOutCubic,
-      builder: (context, current, _) => Text('$prefix${current.round()}', style: style),
+      builder: (context, current, _) => Text('$prefix${current.round()}', style: style, maxLines: maxLines, overflow: overflow),
     );
   }
 }
@@ -289,6 +291,6 @@ class _AnimatedMoneyText extends StatelessWidget {
     tween: Tween<double>(begin: 0, end: value),
     duration: const Duration(milliseconds: 950),
     curve: Curves.easeOutCubic,
-    builder: (context, current, _) => Text('$prefix${current.round()}', style: style),
+    builder: (context, current, _) => Text('$prefix${current.round()}', style: style, maxLines: maxLines, overflow: overflow),
   );
 }
