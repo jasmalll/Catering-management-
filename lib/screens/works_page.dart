@@ -42,6 +42,7 @@ class _WorksPageState extends State<WorksPage> {
     _scrollController.addListener(_handleScroll);
   }
 
+<<<<<<< HEAD
   @override
   void dispose() {
     _searchController.dispose();
@@ -50,6 +51,8 @@ class _WorksPageState extends State<WorksPage> {
     super.dispose();
   }
 
+=======
+>>>>>>> ebb833fe9c35acb301f755af74cb996f7ffab70c
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<CateringProvider>();
@@ -73,11 +76,15 @@ class _WorksPageState extends State<WorksPage> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
+<<<<<<< HEAD
       floatingActionButton: AnimatedScale(
         scale: _showFab ? 1 : 0,
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
         child: FloatingActionButton.extended(
+=======
+      floatingActionButton: FloatingActionButton.extended(
+>>>>>>> ebb833fe9c35acb301f755af74cb996f7ffab70c
         elevation: 4,
         backgroundColor: scheme.primary,
         foregroundColor: isDark ? Colors.black : Colors.white,

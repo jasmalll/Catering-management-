@@ -53,6 +53,7 @@ class _SummaryPageState extends State<SummaryPage> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
+<<<<<<< HEAD
         child: TweenAnimationBuilder<double>(
           tween: Tween<double>(begin: 0, end: 1),
           duration: const Duration(milliseconds: 600),
@@ -62,6 +63,9 @@ class _SummaryPageState extends State<SummaryPage> {
             child: Transform.translate(offset: Offset(0, 16 * (1 - value)), child: child),
           ),
           child: ListView(
+=======
+        child: ListView(
+>>>>>>> ebb833fe9c35acb301f755af74cb996f7ffab70c
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
           children: [
@@ -625,6 +629,64 @@ class _SummaryPageState extends State<SummaryPage> {
       ),
     );
   }
+
+  // --- Clear All Data Dialog ---
+  void _showClearAllDataDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        backgroundColor: Theme.of(context).cardColor,
+        title: Row(
+          children: const [
+            Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 26),
+            SizedBox(width: 8),
+            Text('Clear All Records?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: const Text(
+          'This will permanently delete all catering works, cash collections, and expenses from the application.\n\nThis action cannot be undone.',
+          style: TextStyle(fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700], fontWeight: FontWeight.w600),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () {
+              final provider = context.read<CateringProvider>();
+              // Provider-ൽ ഉള്ള works-ഉം expenses-ഉം ഒന്നിച്ച് ക്ലിയർ ചെയ്യുന്നു
+              provider.works.clear();
+              provider.expenses.clear();
+              // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+              provider.notifyListeners();
+
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  backgroundColor: Colors.redAccent,
+                  content: Text('All data has been reset successfully!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              );
+            },
+            child: const Text('Delete Everything'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // --- Supporting Widgets ---
@@ -651,7 +713,11 @@ class _HeroValue extends StatelessWidget {
               children: [
                 Text(label, style: TextStyle(color: Colors.white.withOpacity(0.68), fontSize: 11)),
                 const SizedBox(height: 2),
+<<<<<<< HEAD
                 _AnimatedReportValue(value: value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+=======
+                Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+>>>>>>> ebb833fe9c35acb301f755af74cb996f7ffab70c
               ],
             ),
           ),
@@ -709,8 +775,13 @@ class _MetricCard extends StatelessWidget {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
+<<<<<<< HEAD
                 child: _AnimatedReportValue(
                   value: value,
+=======
+                child: Text(
+                  value,
+>>>>>>> ebb833fe9c35acb301f755af74cb996f7ffab70c
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.4, color: scheme.onSurface),
                 ),
               ),
@@ -838,6 +909,7 @@ class _EmptyPanel extends StatelessWidget {
           ),
         ),
       );
+<<<<<<< HEAD
 }
 
 
@@ -860,4 +932,6 @@ class _AnimatedReportValue extends StatelessWidget {
       builder: (context, current, _) => Text('$prefix${current.round()}', style: style, maxLines: maxLines, overflow: overflow),
     );
   }
+=======
+>>>>>>> ebb833fe9c35acb301f755af74cb996f7ffab70c
 }
