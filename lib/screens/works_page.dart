@@ -29,242 +29,219 @@ class _WorksPageState extends State<WorksPage> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Color get _green => const Color(0xFF087A5B);
+  Color get _navy => const Color(0xFF153541);
+
+  @override
   Widget build(BuildContext context) {
     final provider = context.watch<CateringProvider>();
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final muted = scheme.onSurfaceVariant;
 
-    // പുതിയ വർക്കുകൾ ഏറ്റവും മുകളിൽ വരാൻ .reversed നൽകിയിരിക്കുന്നു
     final filteredWorks = provider.works.reversed.where((item) {
-      final matchesSearch = item.venue.toLowerCase().contains(searchQuery.toLowerCase()) ||
-          item.location.toLowerCase().contains(searchQuery.toLowerCase()) ||
-          item.eventType.toLowerCase().contains(searchQuery.toLowerCase());
-
+      final query = searchQuery.trim().toLowerCase();
+      final matchesSearch = query.isEmpty ||
+          item.venue.toLowerCase().contains(query) ||
+          item.location.toLowerCase().contains(query) ||
+          item.eventType.toLowerCase().contains(query) ||
+          item.number.toLowerCase().contains(query);
       if (!matchesSearch) return false;
-
       if (selectedFilter == 'Paid') return item.isPaid;
       if (selectedFilter == 'Pending') return !item.isPaid;
       return true;
     }).toList();
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF16865B),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: Text('Add Work', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        elevation: 5,
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
+        icon: const Icon(Icons.add_rounded, size: 23),
+        label: const Text('Add Work', style: TextStyle(fontWeight: FontWeight.w700)),
         onPressed: () => _showAddWorkSheet(context),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Header Row
+              // Header follows the CaterPro home dashboard visual language.
               Row(
                 children: [
-                  Icon(Icons.menu, size: 26, color: Theme.of(context).colorScheme.onSurface),
-                  const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.all(6),
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.09),
-                      shape: BoxShape.circle,
+                      color: isDark ? scheme.primary.withOpacity(.16) : const Color(0xFFE5F1EC),
+                      borderRadius: BorderRadius.circular(17),
                     ),
-                    child: Icon(Icons.work_outline_rounded, size: 20, color: Theme.of(context).colorScheme.onSurface),
+                    child: Icon(Icons.work_outline_rounded, color: scheme.primary, size: 25),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Works', style: TextStyle(fontSize: 25, height: 1.1, fontWeight: FontWeight.w800, letterSpacing: -.8, color: scheme.onSurface)),
+                        const SizedBox(height: 4),
+                        Text('Manage schedule & payments', style: TextStyle(fontSize: 12.5, color: muted)),
+                      ],
+                    ),
+                  ),
+                  Material(
+                    color: theme.cardColor,
+                    shape: CircleBorder(side: BorderSide(color: scheme.outline.withOpacity(.45))),
+                    child: IconButton(
+                      tooltip: 'Open calendar',
+                      icon: const Icon(Icons.calendar_month_rounded),
+                      color: scheme.onSurface,
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CalendarPage())),
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  Material(
+                    color: theme.cardColor,
+                    shape: CircleBorder(side: BorderSide(color: scheme.outline.withOpacity(.45))),
+                    child: IconButton(
+                      tooltip: 'Filters',
+                      icon: const Icon(Icons.tune_rounded),
+                      color: scheme.onSurface,
+                      onPressed: () => _showFilterSheet(context),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 25),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('Your bookings', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800, letterSpacing: -.5, color: scheme.onSurface)),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: scheme.outline.withOpacity(.5)),
+                    ),
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          'Works',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: -0.5,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          'Manage schedule & payments',
-                          style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        Icon(Icons.calendar_today_rounded, size: 14, color: scheme.primary),
+                        const SizedBox(width: 7),
+                        Text(currentMonthText, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: scheme.onSurface)),
+                        const SizedBox(width: 3),
+                        Icon(Icons.keyboard_arrow_down_rounded, size: 17, color: muted),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const CalendarPage()),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Theme.of(context).dividerColor),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.calendar_today_outlined, size: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                          const SizedBox(width: 4),
-                          Text(
-                            currentMonthText,
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
-                          ),
-                          Icon(Icons.keyboard_arrow_down, size: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                        ],
-                      ),
-                    ),
-                  ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 15),
 
-              // 2. Search Bar
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Theme.of(context).dividerColor),
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (val) => setState(() => searchQuery = val),
-                        decoration: InputDecoration(
-                          hintText: 'Search by venue, place or event...',
-                          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                          prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
+              Container(
+                height: 54,
+                decoration: BoxDecoration(
+                  color: theme.cardColor,
+                  borderRadius: BorderRadius.circular(19),
+                  border: Border.all(color: scheme.outline.withOpacity(.55)),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) => setState(() => searchQuery = value),
+                  style: TextStyle(fontSize: 14, color: scheme.onSurface),
+                  decoration: InputDecoration(
+                    hintText: 'Search venue, place or event...',
+                    hintStyle: TextStyle(fontSize: 13, color: muted.withOpacity(.75)),
+                    prefixIcon: Icon(Icons.search_rounded, color: muted, size: 22),
+                    suffixIcon: searchQuery.isEmpty ? null : IconButton(
+                      tooltip: 'Clear search',
+                      icon: Icon(Icons.close_rounded, color: muted, size: 19),
+                      onPressed: () { _searchController.clear(); setState(() => searchQuery = ''); },
                     ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  const SizedBox(width: 10),
-                  Container(
-                    height: 46,
-                    width: 46,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Theme.of(context).dividerColor),
-                    ),
-                    child: Icon(Icons.tune_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-
-              // 3. Filter Chips
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: ['All', 'Paid', 'Pending'].map((filter) {
-                    bool isSelected = selectedFilter == filter;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: GestureDetector(
-                        onTap: () => setState(() => selectedFilter = filter),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).cardColor,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isSelected ? Colors.transparent : Colors.grey.shade300,
-                            ),
-                          ),
-                          child: Text(
-                            filter,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 15),
 
-              // 4. Metric Cards
+              Row(
+                children: ['All', 'Paid', 'Pending'].map((filter) {
+                  final selected = selectedFilter == filter;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 9),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: () => setState(() => selectedFilter = filter),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(horizontal: 21, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: selected ? scheme.primary : theme.cardColor,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: selected ? scheme.primary : scheme.outline.withOpacity(.55)),
+                        ),
+                        child: Text(filter, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: selected ? scheme.onPrimary : scheme.onSurface)),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 22),
+
               Row(
                 children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      icon: Icons.calendar_today_outlined,
-                      title: 'Total Works',
-                      value: '${provider.totalWorksCount}',
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: _buildStatCard(
-                      icon: Icons.currency_rupee,
-                      title: 'Total Income',
-                      value: '₹ ${provider.totalIncome.toStringAsFixed(0)}',
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: _buildStatCard(
-                      icon: Icons.check_circle_outline,
-                      title: 'Received',
-                      value: '₹ ${provider.receivedAmount.toStringAsFixed(0)}',
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: _buildStatCard(
-                      icon: Icons.access_time_rounded,
-                      title: 'Pending',
-                      value: '₹ ${provider.pendingAmount.toStringAsFixed(0)}',
-                    ),
-                  ),
+                  Expanded(child: _buildStatCard(icon: Icons.event_note_rounded, title: 'Total Works', value: '${provider.totalWorksCount}', tint: const Color(0xFF557CCB))),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildStatCard(icon: Icons.account_balance_wallet_rounded, title: 'Total Income', value: '₹${provider.totalIncome.toStringAsFixed(0)}', tint: const Color(0xFF168568))),
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(child: _buildStatCard(icon: Icons.check_circle_rounded, title: 'Received', value: '₹${provider.receivedAmount.toStringAsFixed(0)}', tint: const Color(0xFF168568))),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildStatCard(icon: Icons.hourglass_bottom_rounded, title: 'Pending', value: '₹${provider.pendingAmount.toStringAsFixed(0)}', tint: const Color(0xFFD99A35))),
+                ],
+              ),
+              const SizedBox(height: 25),
 
-              // 5. Works Cards List
+              Row(
+                children: [
+                  Expanded(child: Text('All bookings', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.4, color: scheme.onSurface))),
+                  Text('${filteredWorks.length} ${filteredWorks.length == 1 ? 'work' : 'works'}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: muted)),
+                ],
+              ),
+              const SizedBox(height: 13),
               if (filteredWorks.isEmpty)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 60),
-                    child: Column(
-                      children: [
-                        Icon(Icons.assignment_outlined, size: 50, color: Colors.grey.shade300),
-                        const SizedBox(height: 10),
-                        Text(
-                          'No catering works found.\nTap "Add Work" to add venue, time & amount.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-                        ),
-                      ],
-                    ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 42),
+                  decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(25), border: Border.all(color: scheme.outline.withOpacity(.45))),
+                  child: Column(
+                    children: [
+                      Container(width: 62, height: 62, decoration: BoxDecoration(color: scheme.primary.withOpacity(.10), shape: BoxShape.circle), child: Icon(Icons.event_busy_rounded, size: 30, color: scheme.primary)),
+                      const SizedBox(height: 13),
+                      Text('No works found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: scheme.onSurface)),
+                      const SizedBox(height: 5),
+                      Text(searchQuery.isNotEmpty ? 'Try another search keyword.' : 'Tap Add Work to create your first booking.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12.5, color: muted)),
+                    ],
                   ),
                 )
               else
-                ...filteredWorks.map((work) => _buildWorkCard(work, context)).toList(),
-
-              const SizedBox(height: 80),
+                ...filteredWorks.map((work) => _buildWorkCard(work, context)),
             ],
           ),
         ),
@@ -272,296 +249,133 @@ class _WorksPageState extends State<WorksPage> {
     );
   }
 
-  Widget _buildStatCard({
-    required IconData icon,
-    required String title,
-    required String value,
-  }) {
+  Widget _buildStatCard({required IconData icon, required String title, required String value, required Color tint}) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+      constraints: const BoxConstraints(minHeight: 112),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Theme.of(context).dividerColor),
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(23),
+        border: Border.all(color: scheme.outline.withOpacity(.45)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(icon, size: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-              const SizedBox(width: 3),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(fontSize: 8.5, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          Container(width: 39, height: 39, decoration: BoxDecoration(color: tint.withOpacity(theme.brightness == Brightness.dark ? .19 : .11), borderRadius: BorderRadius.circular(14)), child: Icon(icon, size: 20, color: theme.brightness == Brightness.dark ? Color.lerp(tint, Colors.white, .25) : tint)),
+          const SizedBox(height: 9),
+          Text(title, style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 3),
+          FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(value, style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.5, color: scheme.onSurface))),
         ],
       ),
     );
   }
 
   Widget _buildWorkCard(WorkItem work, BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final paidColor = work.isPaid ? const Color(0xFF23865D) : const Color(0xFFD58A28);
+    final eventTint = isDark ? const Color(0xFF8DB7FF) : const Color(0xFF3568A8);
+
+    Widget detailPill(IconData icon, String text, {Color? color, Color? background}) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(color: background ?? scheme.surfaceContainerHighest.withOpacity(.65), borderRadius: BorderRadius.circular(12)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 14, color: color ?? scheme.onSurfaceVariant), const SizedBox(width: 6), Flexible(child: Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color ?? scheme.onSurface), maxLines: 1, overflow: TextOverflow.ellipsis))]),
+    );
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      margin: const EdgeInsets.only(bottom: 13),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).dividerColor),
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: scheme.outline.withOpacity(.48)),
+        boxShadow: isDark ? null : [BoxShadow(color: const Color(0xFF173D30).withOpacity(.035), blurRadius: 16, offset: const Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  work.number,
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(work.icon, size: 16, color: Theme.of(context).colorScheme.onSurface),
-              ),
-              const SizedBox(width: 8),
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            work.venue,
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            work.eventType,
-                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.blue.shade800),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, size: 10, color: Colors.grey),
-                        const SizedBox(width: 2),
-                        Expanded(
-                          child: Text(
-                            work.location,
-                            style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '₹ ${work.amount.toStringAsFixed(0)}',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Bal: ₹ ${work.balance.toStringAsFixed(0)}',
-                    style: TextStyle(fontSize: 9.5, color: Colors.grey.shade500),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 6),
-
-              GestureDetector(
-                onTap: () => context.read<CateringProvider>().togglePaymentStatus(work.id),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: work.isPaid ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        work.isPaid ? Icons.check : Icons.access_time_rounded,
-                        size: 10,
-                        color: work.isPaid ? const Color(0xFF2E7D32) : const Color(0xFFF57C00),
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        work.status,
-                        style: TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.bold,
-                          color: work.isPaid ? const Color(0xFF2E7D32) : const Color(0xFFF57C00),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              PopupMenuButton<String>(
-                icon: Icon(Icons.more_vert, size: 17, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onSelected: (val) {
-                  if (val == 'edit') {
-                    _showEditWorkSheet(context, work);
-                  } else if (val == 'pdf') {
-                    PdfService.exportWorkInvoice(work);
-                  } else if (val == 'delete') {
-                    _showDeleteDialog(context, work.id);
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit_outlined, size: 16, color: Colors.blue),
-                        SizedBox(width: 8),
-                        Text('Edit', style: TextStyle(fontSize: 13)),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'pdf',
-                    child: Row(
-                      children: [
-                        Icon(Icons.picture_as_pdf_outlined, size: 16, color: Colors.green),
-                        SizedBox(width: 8),
-                        Text('Bill / Invoice', style: TextStyle(fontSize: 13)),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_outline, size: 16, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Delete', style: TextStyle(fontSize: 13, color: Colors.red)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-
-          const Divider(height: 14, thickness: 0.7),
-
-          // Date, Reporting Time & Pax Badges (Wrap prevents overflow)
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(6)),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.calendar_today_outlined, size: 10.5, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                    const SizedBox(width: 4),
-                    Text(work.dateText, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-                decoration: BoxDecoration(color: const Color(0xFFFFF8E1), borderRadius: BorderRadius.circular(6)),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.schedule, size: 10.5, color: Color(0xFFF57F17)),
-                    const SizedBox(width: 4),
-                    Text('Report: ${work.reportingTime}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFF57F17))),
-                  ],
-                ),
-              ),
-              if (work.paxCount.isNotEmpty && work.paxCount != 'General')
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-                  decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(6)),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.people_alt_outlined, size: 10.5, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                      const SizedBox(width: 4),
-                      Text(work.paxCount, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-
-          if (work.note.trim().isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Note: ${work.note}',
-              style: TextStyle(fontSize: 10.5, fontStyle: FontStyle.italic, color: Colors.grey.shade600),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(width: 38, height: 38, alignment: Alignment.center, decoration: BoxDecoration(color: scheme.primary.withOpacity(.10), borderRadius: BorderRadius.circular(13)), child: Text(work.number, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: scheme.primary))),
+            const SizedBox(width: 10),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(work.venue, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: -.2, color: scheme.onSurface)),
+              const SizedBox(height: 5),
+              Row(children: [Icon(Icons.location_on_outlined, size: 13, color: scheme.onSurfaceVariant), const SizedBox(width: 3), Expanded(child: Text(work.location, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11.5, color: scheme.onSurfaceVariant)))]),
+            ])),
+            const SizedBox(width: 7),
+            PopupMenuButton<String>(
+              tooltip: 'Work options', padding: EdgeInsets.zero, icon: Icon(Icons.more_horiz_rounded, color: scheme.onSurfaceVariant),
+              onSelected: (value) {
+                if (value == 'edit') _showEditWorkSheet(context, work);
+                if (value == 'pdf') PdfService.exportWorkInvoice(work);
+                if (value == 'delete') _showDeleteDialog(context, work.id);
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'edit', child: ListTile(dense: true, leading: Icon(Icons.edit_outlined, color: Colors.blue), title: Text('Edit'))),
+                PopupMenuItem(value: 'pdf', child: ListTile(dense: true, leading: Icon(Icons.picture_as_pdf_outlined, color: Colors.green), title: Text('Bill / Invoice'))),
+                PopupMenuItem(value: 'delete', child: ListTile(dense: true, leading: Icon(Icons.delete_outline, color: Colors.red), title: Text('Delete'))),
+              ],
             ),
+          ]),
+          const SizedBox(height: 13),
+          Row(children: [
+            Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5), decoration: BoxDecoration(color: eventTint.withOpacity(.11), borderRadius: BorderRadius.circular(9)), child: Text(work.eventType, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: eventTint))),
+            const Spacer(),
+            Text('₹${work.amount.toStringAsFixed(0)}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -.4, color: scheme.onSurface)),
+          ]),
+          const SizedBox(height: 5),
+          Row(children: [
+            const Spacer(),
+            Text('Balance  ₹${work.balance.toStringAsFixed(0)}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: scheme.onSurfaceVariant)),
+          ]),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: Wrap(spacing: 7, runSpacing: 7, children: [
+              detailPill(Icons.calendar_today_rounded, work.dateText),
+              detailPill(Icons.schedule_rounded, work.reportingTime, color: isDark ? const Color(0xFFFFC56D) : const Color(0xFFB97818), background: isDark ? const Color(0xFF45351F) : const Color(0xFFFFF5E3)),
+              if (work.paxCount.isNotEmpty && work.paxCount != 'General') detailPill(Icons.groups_2_outlined, work.paxCount),
+            ])),
+            const SizedBox(width: 8),
+            InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => context.read<CateringProvider>().togglePaymentStatus(work.id),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                decoration: BoxDecoration(color: paidColor.withOpacity(isDark ? .20 : .11), borderRadius: BorderRadius.circular(20)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(work.isPaid ? Icons.check_circle_rounded : Icons.pending_rounded, size: 13, color: paidColor), const SizedBox(width: 5), Text(work.status, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: paidColor))]),
+              ),
+            ),
+          ]),
+          if (work.note.trim().isNotEmpty) ...[
+            const SizedBox(height: 11),
+            Container(width: double.infinity, padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withOpacity(.5), borderRadius: BorderRadius.circular(12)), child: Text('Note: ${work.note}', style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant))),
           ],
         ],
       ),
+    );
+  }
+
+  void _showFilterSheet(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(26))),
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSheetState) => Padding(
+        padding: const EdgeInsets.fromLTRB(22, 4, 22, 28),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Filter works', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: scheme.onSurface)),
+          const SizedBox(height: 5),
+          Text('Choose which bookings you want to see.', style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+          const SizedBox(height: 17),
+          ...['All', 'Paid', 'Pending'].map((value) => RadioListTile<String>(contentPadding: EdgeInsets.zero, activeColor: scheme.primary, title: Text(value), value: value, groupValue: selectedFilter, onChanged: (v) { if (v != null) { setState(() => selectedFilter = v); setSheetState(() {}); Navigator.pop(ctx); } })),
+        ]),
+      )),
     );
   }
 
@@ -581,8 +395,10 @@ class _WorksPageState extends State<WorksPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: Theme.of(context).cardColor,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => Padding(
@@ -846,8 +662,10 @@ class _WorksPageState extends State<WorksPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: Theme.of(context).cardColor,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => Padding(
