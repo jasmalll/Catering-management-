@@ -1,0 +1,18 @@
+CaterPro UI animation update
+=============================
+
+Updated existing screen files based on the actual project structure:
+- lib/screens/home_dashboard_page.dart (the project uses this instead of dashboard_page.dart)
+- lib/screens/works_page.dart (the project uses this instead of work_page.dart)
+- lib/screens/expenses_page.dart
+- lib/screens/summary_page.dart
+- lib/main.dart (bottom navigation already had AnimatedContainer/AnimatedScale)
+
+Animations added/updated:
+- Dashboard entrance fade/slide (existing), cash-in-hand and snapshot number count-up, collection progress fill, and theme icon rotation.
+- Work/expense FAB scale hide/show based on scroll direction, with ScrollController lifecycle cleanup.
+- Summary screen entrance fade/slide, report value count-up, and collection progress fill.
+- Bottom navigation's existing active-tab pop animation preserved.
+
+Data models, provider, storage/services, theme logic, and dependencies were not intentionally changed.
+Please run `flutter pub get` and `flutter analyze` in your Flutter environment before building an APK.

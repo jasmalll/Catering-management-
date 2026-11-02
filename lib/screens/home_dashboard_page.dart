@@ -58,6 +58,7 @@ class HomeDashboardPage extends StatelessWidget {
                   Consumer<CaterProThemeController>(builder: (context, controller, _) => _HeaderIcon(
                     icon: controller.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
                     onTap: controller.toggle,
+                    rotationTurns: controller.isDark ? 1 : 0,
                   )),
                   const SizedBox(width: 4),
                   PopupMenuButton<String>(
@@ -93,7 +94,7 @@ class HomeDashboardPage extends StatelessWidget {
                       Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.white.withOpacity(.10), borderRadius: BorderRadius.circular(30)), child: Text('${months[now.month - 1]} ${now.year}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700))),
                     ]),
                     const SizedBox(height: 12),
-                    Text(_money(cashInHand), style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: -1.2)),
+                    _AnimatedMoneyText(value: cashInHand, prefix: '₹', style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: -1.2)),
                     const SizedBox(height: 7),
                     Text('Received cash minus recorded expenses', style: TextStyle(color: Colors.white.withOpacity(.68), fontSize: 12)),
                     const SizedBox(height: 22),
@@ -133,7 +134,12 @@ class HomeDashboardPage extends StatelessWidget {
                     Text(totalIncome > 0 ? '${((received / totalIncome).clamp(0.0, 1.0) * 100).round()}% received' : 'No income yet', style: theme.textTheme.labelMedium?.copyWith(color: colors.primary, fontWeight: FontWeight.w800)),
                   ]),
                   const SizedBox(height: 14),
-                  ClipRRect(borderRadius: BorderRadius.circular(20), child: LinearProgressIndicator(value: totalIncome > 0 ? (received / totalIncome).clamp(0.0, 1.0) : 0, minHeight: 9, backgroundColor: theme.dividerColor.withOpacity(.7), valueColor: const AlwaysStoppedAnimation(Color(0xFF16865B)))),
+                  ClipRRect(borderRadius: BorderRadius.circular(20), child: TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0, end: totalIncome > 0 ? (received / totalIncome).clamp(0.0, 1.0) : 0),
+                    duration: const Duration(milliseconds: 900),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, value, _) => LinearProgressIndicator(value: value, minHeight: 9, backgroundColor: theme.dividerColor.withOpacity(.7), valueColor: const AlwaysStoppedAnimation(Color(0xFF16865B))),
+                  )),
                   const SizedBox(height: 16),
                   Row(children: [
                     Expanded(child: _FlowLegend(label: 'Received', amount: _money(received), dot: const Color(0xFF16865B))),
@@ -169,14 +175,15 @@ class HomeDashboardPage extends StatelessWidget {
 }
 
 class _HeaderIcon extends StatelessWidget {
-  const _HeaderIcon({required this.icon, required this.onTap});
+  const _HeaderIcon({required this.icon, required this.onTap, this.rotationTurns = 0});
   final IconData icon;
   final VoidCallback onTap;
+  final int rotationTurns;
   @override
   Widget build(BuildContext context) => Material(
     color: Theme.of(context).cardColor,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: Theme.of(context).dividerColor)),
-    child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(14), child: SizedBox(width: 40, height: 40, child: Icon(icon, size: 19, color: Theme.of(context).colorScheme.onSurface))),
+    child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(14), child: SizedBox(width: 40, height: 40, child: Center(child: AnimatedRotation(turns: rotationTurns, duration: const Duration(milliseconds: 500), curve: Curves.easeInOutCubic, child: Icon(icon, size: 19, color: Theme.of(context).colorScheme.onSurface))))),
   );
 }
 
@@ -199,7 +206,7 @@ class _HeroMiniMetric extends StatelessWidget {
   Widget build(BuildContext context) => Row(children: [
     Container(width: 34, height: 34, decoration: BoxDecoration(color: color.withOpacity(.14), borderRadius: BorderRadius.circular(11)), child: Icon(icon, color: color, size: 17)),
     const SizedBox(width: 9),
-    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: TextStyle(color: Colors.white.withOpacity(.65), fontSize: 11)), const SizedBox(height: 3), Text(amount, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800))])),
+    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: TextStyle(color: Colors.white.withOpacity(.65), fontSize: 11)), const SizedBox(height: 3), _AnimatedValueText(value: amount, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800))])),
   ]);
 }
 
@@ -249,4 +256,39 @@ class _RecentWorkCard extends StatelessWidget {
       Text('₹${work.amount.toStringAsFixed(0)}', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -.4)),
     ]));
   }
+}
+
+
+/// Lightweight number animation; keeps the existing displayed value and formatting.
+class _AnimatedValueText extends StatelessWidget {
+  const _AnimatedValueText({required this.value, this.style});
+  final String value;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    final numeric = double.tryParse(value.replaceAll(RegExp(r'[^0-9.\-]'), ''));
+    if (numeric == null) return Text(value, style: style);
+    final prefix = value.startsWith('₹') ? '₹' : '';
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: numeric),
+      duration: const Duration(milliseconds: 850),
+      curve: Curves.easeOutCubic,
+      builder: (context, current, _) => Text('$prefix${current.round()}', style: style),
+    );
+  }
+}
+
+class _AnimatedMoneyText extends StatelessWidget {
+  const _AnimatedMoneyText({required this.value, required this.prefix, required this.style});
+  final double value;
+  final String prefix;
+  final TextStyle style;
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    tween: Tween<double>(begin: 0, end: value),
+    duration: const Duration(milliseconds: 950),
+    curve: Curves.easeOutCubic,
+    builder: (context, current, _) => Text('$prefix${current.round()}', style: style),
+  );
 }

@@ -17,8 +17,16 @@ class _WorksPageState extends State<WorksPage> {
   String selectedFilter = 'All';
   String searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  bool _showFab = true;
 
-  // മാസത്തിന്റെ പേര് ചുരുക്കി 'Sep 2026' എന്നാക്കി ഓവർഫ്ലോ ഒഴിവാക്കുന്നു
+  void _handleScroll() {
+    final shouldShow = !_scrollController.hasClients || _scrollController.position.pixels < 24 ||
+        _scrollController.position.userScrollDirection == ScrollDirection.forward;
+    if (shouldShow != _showFab && mounted) setState(() => _showFab = shouldShow);
+  }
+
+
   String get currentMonthText {
     const shortMonths = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -29,13 +37,18 @@ class _WorksPageState extends State<WorksPage> {
   }
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_handleScroll);
   }
 
-  Color get _green => const Color(0xFF087A5B);
-  Color get _navy => const Color(0xFF153541);
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _scrollController.removeListener(_handleScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +56,7 @@ class _WorksPageState extends State<WorksPage> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-    final muted = scheme.onSurfaceVariant;
+    final muted = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
 
     final filteredWorks = provider.works.reversed.where((item) {
       final query = searchQuery.trim().toLowerCase();
@@ -60,183 +73,313 @@ class _WorksPageState extends State<WorksPage> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      floatingActionButton: FloatingActionButton.extended(
-        elevation: 5,
+      floatingActionButton: AnimatedScale(
+        scale: _showFab ? 1 : 0,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        child: FloatingActionButton.extended(
+        elevation: 4,
         backgroundColor: scheme.primary,
-        foregroundColor: scheme.onPrimary,
-        icon: const Icon(Icons.add_rounded, size: 23),
-        label: const Text('Add Work', style: TextStyle(fontWeight: FontWeight.w700)),
+        foregroundColor: isDark ? Colors.black : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        icon: const Icon(Icons.add_rounded, size: 22),
+        label: const Text('Add Work', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
         onPressed: () => _showAddWorkSheet(context),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: _scrollController,
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header follows the CaterPro home dashboard visual language.
+              // 1. Header Row
               Row(
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 46,
+                    height: 46,
                     decoration: BoxDecoration(
-                      color: isDark ? scheme.primary.withOpacity(.16) : const Color(0xFFE5F1EC),
-                      borderRadius: BorderRadius.circular(17),
+                      color: scheme.primary.withOpacity(isDark ? 0.18 : 0.12),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Icon(Icons.work_outline_rounded, color: scheme.primary, size: 25),
+                    child: Icon(Icons.business_center_rounded, color: scheme.primary, size: 24),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Works', style: TextStyle(fontSize: 25, height: 1.1, fontWeight: FontWeight.w800, letterSpacing: -.8, color: scheme.onSurface)),
-                        const SizedBox(height: 4),
-                        Text('Manage schedule & payments', style: TextStyle(fontSize: 12.5, color: muted)),
+                        Text(
+                          'Works',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.6,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Manage schedule & payments',
+                          style: TextStyle(fontSize: 13, color: muted),
+                        ),
                       ],
                     ),
                   ),
-                  Material(
-                    color: theme.cardColor,
-                    shape: CircleBorder(side: BorderSide(color: scheme.outline.withOpacity(.45))),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: scheme.outline.withOpacity(0.35)),
+                    ),
                     child: IconButton(
                       tooltip: 'Open calendar',
-                      icon: const Icon(Icons.calendar_month_rounded),
+                      icon: const Icon(Icons.calendar_month_rounded, size: 20),
                       color: scheme.onSurface,
                       onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CalendarPage())),
                     ),
                   ),
-                  const SizedBox(width: 7),
-                  Material(
-                    color: theme.cardColor,
-                    shape: CircleBorder(side: BorderSide(color: scheme.outline.withOpacity(.45))),
+                  const SizedBox(width: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: scheme.outline.withOpacity(0.35)),
+                    ),
                     child: IconButton(
-                      tooltip: 'Filters',
-                      icon: const Icon(Icons.tune_rounded),
+                      tooltip: 'Advanced Filters',
+                      icon: const Icon(Icons.tune_rounded, size: 20),
                       color: scheme.onSurface,
                       onPressed: () => _showFilterSheet(context),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 25),
+              const SizedBox(height: 18),
 
+              // Month Selector Bar
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: Text('Your bookings', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800, letterSpacing: -.5, color: scheme.onSurface)),
+                  Text(
+                    'Your bookings',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.4,
+                      color: scheme.onSurface,
+                    ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                     decoration: BoxDecoration(
                       color: theme.cardColor,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: scheme.outline.withOpacity(.5)),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: scheme.outline.withOpacity(0.35)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.calendar_today_rounded, size: 14, color: scheme.primary),
-                        const SizedBox(width: 7),
-                        Text(currentMonthText, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: scheme.onSurface)),
+                        Icon(Icons.calendar_today_rounded, size: 13, color: scheme.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          currentMonthText,
+                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: scheme.onSurface),
+                        ),
                         const SizedBox(width: 3),
-                        Icon(Icons.keyboard_arrow_down_rounded, size: 17, color: muted),
+                        Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: muted),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 14),
 
+              // Search Field
               Container(
-                height: 54,
+                height: 52,
                 decoration: BoxDecoration(
                   color: theme.cardColor,
-                  borderRadius: BorderRadius.circular(19),
-                  border: Border.all(color: scheme.outline.withOpacity(.55)),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: scheme.outline.withOpacity(0.35)),
                 ),
                 child: TextField(
                   controller: _searchController,
                   onChanged: (value) => setState(() => searchQuery = value),
                   style: TextStyle(fontSize: 14, color: scheme.onSurface),
                   decoration: InputDecoration(
-                    hintText: 'Search venue, place or event...',
-                    hintStyle: TextStyle(fontSize: 13, color: muted.withOpacity(.75)),
+                    hintText: 'Search by venue, place or event...',
+                    hintStyle: TextStyle(fontSize: 13, color: muted.withOpacity(0.7)),
                     prefixIcon: Icon(Icons.search_rounded, color: muted, size: 22),
-                    suffixIcon: searchQuery.isEmpty ? null : IconButton(
-                      tooltip: 'Clear search',
-                      icon: Icon(Icons.close_rounded, color: muted, size: 19),
-                      onPressed: () { _searchController.clear(); setState(() => searchQuery = ''); },
-                    ),
+                    suffixIcon: searchQuery.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'Clear search',
+                            icon: Icon(Icons.close_rounded, color: muted, size: 18),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => searchQuery = '');
+                            },
+                          ),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 15),
                   ),
                 ),
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 14),
 
+              // Filter Chips
               Row(
                 children: ['All', 'Paid', 'Pending'].map((filter) {
-                  final selected = selectedFilter == filter;
+                  final isSelected = selectedFilter == filter;
                   return Padding(
-                    padding: const EdgeInsets.only(right: 9),
+                    padding: const EdgeInsets.only(right: 8.0),
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(20),
                       onTap: () => setState(() => selectedFilter = filter),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
-                        padding: const EdgeInsets.symmetric(horizontal: 21, vertical: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 9),
                         decoration: BoxDecoration(
-                          color: selected ? scheme.primary : theme.cardColor,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: selected ? scheme.primary : scheme.outline.withOpacity(.55)),
+                          color: isSelected ? scheme.primary : theme.cardColor,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSelected ? scheme.primary : scheme.outline.withOpacity(0.35),
+                          ),
                         ),
-                        child: Text(filter, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: selected ? scheme.onPrimary : scheme.onSurface)),
+                        child: Text(
+                          filter,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isSelected
+                                ? (isDark ? Colors.black : Colors.white)
+                                : scheme.onSurface,
+                          ),
+                        ),
                       ),
                     ),
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 18),
 
-              Row(
+              // Financial Overview (2x2 Grid)
+              Column(
                 children: [
-                  Expanded(child: _buildStatCard(icon: Icons.event_note_rounded, title: 'Total Works', value: '${provider.totalWorksCount}', tint: const Color(0xFF557CCB))),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildStatCard(icon: Icons.account_balance_wallet_rounded, title: 'Total Income', value: '₹${provider.totalIncome.toStringAsFixed(0)}', tint: const Color(0xFF168568))),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildOverviewTile(
+                          title: 'Total Works',
+                          value: '${provider.totalWorksCount}',
+                          icon: Icons.assignment_outlined,
+                          iconBg: Colors.blue.withOpacity(0.12),
+                          iconColor: Colors.blueAccent,
+                          isDark: isDark,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildOverviewTile(
+                          title: 'Total Income',
+                          value: '₹${provider.totalIncome.toStringAsFixed(0)}',
+                          icon: Icons.account_balance_wallet_outlined,
+                          iconBg: Colors.teal.withOpacity(0.12),
+                          iconColor: Colors.teal,
+                          isDark: isDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildOverviewTile(
+                          title: 'Received',
+                          value: '₹${provider.receivedAmount.toStringAsFixed(0)}',
+                          icon: Icons.check_circle_outline_rounded,
+                          iconBg: Colors.green.withOpacity(0.12),
+                          iconColor: Colors.green,
+                          isDark: isDark,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildOverviewTile(
+                          title: 'Pending',
+                          value: '₹${provider.pendingAmount.toStringAsFixed(0)}',
+                          icon: Icons.hourglass_bottom_rounded,
+                          iconBg: Colors.orange.withOpacity(0.12),
+                          iconColor: Colors.orangeAccent,
+                          isDark: isDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Bookings Section Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'All Bookings',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                  Text(
+                    '${filteredWorks.length} ${filteredWorks.length == 1 ? 'work' : 'works'}',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: muted),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(child: _buildStatCard(icon: Icons.check_circle_rounded, title: 'Received', value: '₹${provider.receivedAmount.toStringAsFixed(0)}', tint: const Color(0xFF168568))),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildStatCard(icon: Icons.hourglass_bottom_rounded, title: 'Pending', value: '₹${provider.pendingAmount.toStringAsFixed(0)}', tint: const Color(0xFFD99A35))),
-                ],
-              ),
-              const SizedBox(height: 25),
 
-              Row(
-                children: [
-                  Expanded(child: Text('All bookings', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.4, color: scheme.onSurface))),
-                  Text('${filteredWorks.length} ${filteredWorks.length == 1 ? 'work' : 'works'}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: muted)),
-                ],
-              ),
-              const SizedBox(height: 13),
+              // Works List / Empty State
               if (filteredWorks.isEmpty)
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 42),
-                  decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(25), border: Border.all(color: scheme.outline.withOpacity(.45))),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+                  decoration: BoxDecoration(
+                    color: theme.cardColor,
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: scheme.outline.withOpacity(0.35)),
+                  ),
                   child: Column(
                     children: [
-                      Container(width: 62, height: 62, decoration: BoxDecoration(color: scheme.primary.withOpacity(.10), shape: BoxShape.circle), child: Icon(Icons.event_busy_rounded, size: 30, color: scheme.primary)),
-                      const SizedBox(height: 13),
-                      Text('No works found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: scheme.onSurface)),
-                      const SizedBox(height: 5),
-                      Text(searchQuery.isNotEmpty ? 'Try another search keyword.' : 'Tap Add Work to create your first booking.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12.5, color: muted)),
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withOpacity(0.10),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.event_busy_rounded, size: 28, color: scheme.primary),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No works found',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: scheme.onSurface),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        searchQuery.isNotEmpty
+                            ? 'Try another search keyword.'
+                            : 'Tap Add Work to create your first booking.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12, color: muted),
+                      ),
                     ],
                   ),
                 )
@@ -248,114 +391,311 @@ class _WorksPageState extends State<WorksPage> {
       ),
     );
   }
-
-  Widget _buildStatCard({required IconData icon, required String title, required String value, required Color tint}) {
+   // --- Financial Overview Tile ---
+  Widget _buildOverviewTile({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required bool isDark,
+  }) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Container(
-      constraints: const BoxConstraints(minHeight: 112),
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: theme.cardColor,
-        borderRadius: BorderRadius.circular(23),
-        border: Border.all(color: scheme.outline.withOpacity(.45)),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: scheme.outline.withOpacity(0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(width: 39, height: 39, decoration: BoxDecoration(color: tint.withOpacity(theme.brightness == Brightness.dark ? .19 : .11), borderRadius: BorderRadius.circular(14)), child: Icon(icon, size: 20, color: theme.brightness == Brightness.dark ? Color.lerp(tint, Colors.white, .25) : tint)),
-          const SizedBox(height: 9),
-          Text(title, style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 3),
-          FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(value, style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.5, color: scheme.onSurface))),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: iconColor, size: 16),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
+                color: scheme.onSurface,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
+  // --- Work Card Widget ---
   Widget _buildWorkCard(WorkItem work, BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-    final paidColor = work.isPaid ? const Color(0xFF23865D) : const Color(0xFFD58A28);
-    final eventTint = isDark ? const Color(0xFF8DB7FF) : const Color(0xFF3568A8);
+    final muted = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
 
-    Widget detailPill(IconData icon, String text, {Color? color, Color? background}) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(color: background ?? scheme.surfaceContainerHighest.withOpacity(.65), borderRadius: BorderRadius.circular(12)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 14, color: color ?? scheme.onSurfaceVariant), const SizedBox(width: 6), Flexible(child: Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color ?? scheme.onSurface), maxLines: 1, overflow: TextOverflow.ellipsis))]),
-    );
+    final isPaid = work.isPaid;
+    final statusBg = isPaid
+        ? (isDark ? const Color(0xFF133826) : const Color(0xFFE6F4EA))
+        : (isDark ? const Color(0xFF3F2B11) : const Color(0xFFFEF3E6));
+    final statusColor = isPaid
+        ? (isDark ? const Color(0xFF63E6BE) : const Color(0xFF0D652D))
+        : (isDark ? const Color(0xFFFFB74D) : const Color(0xFFB06000));
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 13),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: theme.cardColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: scheme.outline.withOpacity(.48)),
-        boxShadow: isDark ? null : [BoxShadow(color: const Color(0xFF173D30).withOpacity(.035), blurRadius: 16, offset: const Offset(0, 5))],
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: scheme.outline.withOpacity(0.35)),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.025),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(width: 38, height: 38, alignment: Alignment.center, decoration: BoxDecoration(color: scheme.primary.withOpacity(.10), borderRadius: BorderRadius.circular(13)), child: Text(work.number, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: scheme.primary))),
-            const SizedBox(width: 10),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(work.venue, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: -.2, color: scheme.onSurface)),
-              const SizedBox(height: 5),
-              Row(children: [Icon(Icons.location_on_outlined, size: 13, color: scheme.onSurfaceVariant), const SizedBox(width: 3), Expanded(child: Text(work.location, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11.5, color: scheme.onSurfaceVariant)))]),
-            ])),
-            const SizedBox(width: 7),
-            PopupMenuButton<String>(
-              tooltip: 'Work options', padding: EdgeInsets.zero, icon: Icon(Icons.more_horiz_rounded, color: scheme.onSurfaceVariant),
-              onSelected: (value) {
-                if (value == 'edit') _showEditWorkSheet(context, work);
-                if (value == 'pdf') PdfService.exportWorkInvoice(work);
-                if (value == 'delete') _showDeleteDialog(context, work.id);
-              },
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'edit', child: ListTile(dense: true, leading: Icon(Icons.edit_outlined, color: Colors.blue), title: Text('Edit'))),
-                PopupMenuItem(value: 'pdf', child: ListTile(dense: true, leading: Icon(Icons.picture_as_pdf_outlined, color: Colors.green), title: Text('Bill / Invoice'))),
-                PopupMenuItem(value: 'delete', child: ListTile(dense: true, leading: Icon(Icons.delete_outline, color: Colors.red), title: Text('Delete'))),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: scheme.primary.withOpacity(isDark ? 0.2 : 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  work.number,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: scheme.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        work.venue,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(isDark ? 0.2 : 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        work.eventType,
+                        style: const TextStyle(
+                          color: Colors.blueAccent,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'Work options',
+                padding: EdgeInsets.zero,
+                icon: Icon(Icons.more_vert_rounded, color: muted, size: 20),
+                onSelected: (value) {
+                  if (value == 'edit') _showEditWorkSheet(context, work);
+                  if (value == 'pdf') PdfService.exportWorkInvoice(work);
+                  if (value == 'delete') _showDeleteDialog(context, work.id);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: ListTile(dense: true, leading: Icon(Icons.edit_outlined, color: Colors.blue), title: Text('Edit')),
+                  ),
+                  PopupMenuItem(
+                    value: 'pdf',
+                    child: ListTile(dense: true, leading: Icon(Icons.picture_as_pdf_outlined, color: Colors.green), title: Text('Bill / Invoice')),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: ListTile(dense: true, leading: Icon(Icons.delete_outline, color: Colors.red), title: Text('Delete')),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Location & Amount
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.location_on_outlined, size: 14, color: muted),
+                  const SizedBox(width: 3),
+                  Text(
+                    work.location,
+                    style: TextStyle(fontSize: 12.5, color: muted, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '₹${work.amount.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                      if (work.balance > 0)
+                        Text(
+                          'Bal: ₹${work.balance.toStringAsFixed(0)}',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: muted),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () => context.read<CateringProvider>().togglePaymentStatus(work.id),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isPaid ? Icons.check_circle_rounded : Icons.pending_rounded,
+                            size: 12,
+                            color: statusColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            work.status,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: statusColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Date, Time, Pax
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark ? scheme.surfaceContainerHighest.withOpacity(0.35) : const Color(0xFFF8FAF8),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: scheme.outline.withOpacity(0.2)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildCardInfoItem(Icons.calendar_today_rounded, work.dateText, muted, scheme.onSurface),
+                _buildCardInfoItem(
+                  Icons.schedule_rounded,
+                  'Report: ${work.reportingTime}',
+                  Colors.orange[800] ?? Colors.orange,
+                  isDark ? const Color(0xFFFFB74D) : const Color(0xFFB06000),
+                ),
+                if (work.paxCount.isNotEmpty && work.paxCount != 'General')
+                  _buildCardInfoItem(Icons.groups_2_outlined, '${work.paxCount} pax', muted, scheme.onSurface)
+                else
+                  _buildCardInfoItem(Icons.groups_2_outlined, 'General', muted, scheme.onSurface),
               ],
             ),
-          ]),
-          const SizedBox(height: 13),
-          Row(children: [
-            Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5), decoration: BoxDecoration(color: eventTint.withOpacity(.11), borderRadius: BorderRadius.circular(9)), child: Text(work.eventType, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: eventTint))),
-            const Spacer(),
-            Text('₹${work.amount.toStringAsFixed(0)}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -.4, color: scheme.onSurface)),
-          ]),
-          const SizedBox(height: 5),
-          Row(children: [
-            const Spacer(),
-            Text('Balance  ₹${work.balance.toStringAsFixed(0)}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: scheme.onSurfaceVariant)),
-          ]),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: Wrap(spacing: 7, runSpacing: 7, children: [
-              detailPill(Icons.calendar_today_rounded, work.dateText),
-              detailPill(Icons.schedule_rounded, work.reportingTime, color: isDark ? const Color(0xFFFFC56D) : const Color(0xFFB97818), background: isDark ? const Color(0xFF45351F) : const Color(0xFFFFF5E3)),
-              if (work.paxCount.isNotEmpty && work.paxCount != 'General') detailPill(Icons.groups_2_outlined, work.paxCount),
-            ])),
-            const SizedBox(width: 8),
-            InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () => context.read<CateringProvider>().togglePaymentStatus(work.id),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-                decoration: BoxDecoration(color: paidColor.withOpacity(isDark ? .20 : .11), borderRadius: BorderRadius.circular(20)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(work.isPaid ? Icons.check_circle_rounded : Icons.pending_rounded, size: 13, color: paidColor), const SizedBox(width: 5), Text(work.status, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: paidColor))]),
+          ),
+
+          if (work.note.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'Note: ${work.note}',
+                style: TextStyle(fontSize: 11, color: muted),
               ),
             ),
-          ]),
-          if (work.note.trim().isNotEmpty) ...[
-            const SizedBox(height: 11),
-            Container(width: double.infinity, padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: scheme.surfaceContainerHighest.withOpacity(.5), borderRadius: BorderRadius.circular(12)), child: Text('Note: ${work.note}', style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant))),
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildCardInfoItem(IconData icon, String text, Color iconColor, Color textColor) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: iconColor),
+        const SizedBox(width: 5),
+        Text(
+          text,
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textColor),
+        ),
+      ],
     );
   }
 
@@ -366,20 +706,38 @@ class _WorksPageState extends State<WorksPage> {
       showDragHandle: true,
       backgroundColor: Theme.of(context).cardColor,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(26))),
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setSheetState) => Padding(
-        padding: const EdgeInsets.fromLTRB(22, 4, 22, 28),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Filter works', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: scheme.onSurface)),
-          const SizedBox(height: 5),
-          Text('Choose which bookings you want to see.', style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
-          const SizedBox(height: 17),
-          ...['All', 'Paid', 'Pending'].map((value) => RadioListTile<String>(contentPadding: EdgeInsets.zero, activeColor: scheme.primary, title: Text(value), value: value, groupValue: selectedFilter, onChanged: (v) { if (v != null) { setState(() => selectedFilter = v); setSheetState(() {}); Navigator.pop(ctx); } })),
-        ]),
-      )),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: const EdgeInsets.fromLTRB(22, 4, 22, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Filter Works', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: scheme.onSurface)),
+              const SizedBox(height: 4),
+              Text('Filter bookings based on status', style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+              const SizedBox(height: 14),
+              ...['All', 'Paid', 'Pending'].map((value) => RadioListTile<String>(
+                    contentPadding: EdgeInsets.zero,
+                    activeColor: scheme.primary,
+                    title: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    value: value,
+                    groupValue: selectedFilter,
+                    onChanged: (v) {
+                      if (v != null) {
+                        setState(() => selectedFilter = v);
+                        setSheetState(() {});
+                        Navigator.pop(ctx);
+                      }
+                    },
+                  )),
+            ],
+          ),
+        ),
+      ),
     );
   }
-
-  // --- ADD WORK BOTTOM SHEET (With 8 PM Previous Night Auto-Reminder) ---
+  // --- ADD WORK BOTTOM SHEET ---
   void _showAddWorkSheet(BuildContext context) {
     final venueController = TextEditingController();
     final locationController = TextEditingController();
@@ -392,13 +750,17 @@ class _WorksPageState extends State<WorksPage> {
     TimeOfDay selectedTime = const TimeOfDay(hour: 7, minute: 0);
     String selectedEventType = 'Wedding';
 
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: Theme.of(context).cardColor,
+      backgroundColor: theme.cardColor,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => Padding(
@@ -406,7 +768,7 @@ class _WorksPageState extends State<WorksPage> {
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
             left: 20,
             right: 20,
-            top: 20,
+            top: 10,
           ),
           child: SingleChildScrollView(
             child: Column(
@@ -416,41 +778,48 @@ class _WorksPageState extends State<WorksPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Book Catering Work', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                    Text(
+                      'Book Catering Work',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: scheme.onSurface),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
 
-                TextField(
+                _buildModernTextField(
                   controller: venueController,
-                  decoration: const InputDecoration(
-                    labelText: 'Venue / Auditorium Name *',
-                    hintText: 'eg: Grand Royal Auditorium',
-                    border: OutlineInputBorder(),
-                  ),
+                  label: 'Venue / Auditorium Name *',
+                  hint: 'eg: Grand Royal Auditorium',
+                  icon: Icons.storefront_outlined,
+                  isDark: isDark,
+                  scheme: scheme,
                 ),
                 const SizedBox(height: 10),
 
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
+                      child: _buildModernTextField(
                         controller: locationController,
-                        decoration: const InputDecoration(
-                          labelText: 'Place / Location *',
-                          hintText: 'eg: Kochi',
-                          border: OutlineInputBorder(),
-                        ),
+                        label: 'Place / Location *',
+                        hint: 'eg: Kochi',
+                        icon: Icons.location_on_outlined,
+                        isDark: isDark,
+                        scheme: scheme,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: selectedEventType,
-                        decoration: const InputDecoration(labelText: 'Event Type', border: OutlineInputBorder()),
+                        dropdownColor: theme.cardColor,
+                        decoration: _buildInputDecoration('Event Type', isDark, scheme),
                         items: ['Wedding', 'Reception', 'Birthday', 'Corporate', 'Other'].map((type) {
-                          return DropdownMenuItem(value: type, child: Text(type, style: TextStyle(fontSize: 13)));
+                          return DropdownMenuItem(value: type, child: Text(type, style: const TextStyle(fontSize: 13)));
                         }).toList(),
                         onChanged: (val) {
                           if (val != null) setModalState(() => selectedEventType = val);
@@ -465,6 +834,7 @@ class _WorksPageState extends State<WorksPage> {
                   children: [
                     Expanded(
                       child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
                         onTap: () async {
                           final picked = await showDatePicker(
                             context: context,
@@ -477,23 +847,24 @@ class _WorksPageState extends State<WorksPage> {
                           }
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade400),
-                            borderRadius: BorderRadius.circular(4),
+                            color: isDark ? scheme.surfaceContainerHighest.withOpacity(0.3) : const Color(0xFFF8FAF8),
+                            border: Border.all(color: scheme.outline.withOpacity(0.35)),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Event Date', style: TextStyle(fontSize: 10.5, color: Colors.grey)),
-                              const SizedBox(height: 2),
+                              Text('Event Date', style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[400] : Colors.grey[600])),
+                              const SizedBox(height: 3),
                               Row(
                                 children: [
-                                  Icon(Icons.calendar_today_outlined, size: 13, color: Theme.of(context).colorScheme.onSurface),
-                                  const SizedBox(width: 5),
+                                  Icon(Icons.calendar_today_outlined, size: 14, color: scheme.primary),
+                                  const SizedBox(width: 6),
                                   Text(
                                     '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
-                                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: scheme.onSurface),
                                   ),
                                 ],
                               ),
@@ -505,6 +876,7 @@ class _WorksPageState extends State<WorksPage> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
                         onTap: () async {
                           final picked = await showTimePicker(
                             context: context,
@@ -515,23 +887,24 @@ class _WorksPageState extends State<WorksPage> {
                           }
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade400),
-                            borderRadius: BorderRadius.circular(4),
+                            color: isDark ? scheme.surfaceContainerHighest.withOpacity(0.3) : const Color(0xFFF8FAF8),
+                            border: Border.all(color: scheme.outline.withOpacity(0.35)),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Reporting Time', style: TextStyle(fontSize: 10.5, color: Colors.grey)),
-                              const SizedBox(height: 2),
+                              Text('Reporting Time', style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[400] : Colors.grey[600])),
+                              const SizedBox(height: 3),
                               Row(
                                 children: [
-                                  Icon(Icons.schedule, size: 13, color: Theme.of(context).colorScheme.onSurface),
-                                  const SizedBox(width: 5),
+                                  Icon(Icons.schedule_rounded, size: 14, color: scheme.primary),
+                                  const SizedBox(width: 6),
                                   Text(
                                     selectedTime.format(context),
-                                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: scheme.onSurface),
                                   ),
                                 ],
                               ),
@@ -547,24 +920,26 @@ class _WorksPageState extends State<WorksPage> {
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
+                      child: _buildModernTextField(
                         controller: amountController,
+                        label: 'Total Amount (₹) *',
+                        hint: '0',
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Total Amount (₹) *',
-                          border: OutlineInputBorder(),
-                        ),
+                        icon: Icons.currency_rupee_rounded,
+                        isDark: isDark,
+                        scheme: scheme,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: TextField(
+                      child: _buildModernTextField(
                         controller: advanceController,
+                        label: 'Advance (₹)',
+                        hint: '0',
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Advance (₹)',
-                          border: OutlineInputBorder(),
-                        ),
+                        icon: Icons.payments_outlined,
+                        isDark: isDark,
+                        scheme: scheme,
                       ),
                     ),
                   ],
@@ -574,35 +949,40 @@ class _WorksPageState extends State<WorksPage> {
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
+                      child: _buildModernTextField(
                         controller: paxController,
-                        decoration: const InputDecoration(
-                          labelText: 'Plates / Pax Count',
-                          hintText: 'eg: 800 Pax',
-                          border: OutlineInputBorder(),
-                        ),
+                        label: 'Plates / Pax Count',
+                        hint: 'eg: 800 Pax',
+                        icon: Icons.people_outline_rounded,
+                        isDark: isDark,
+                        scheme: scheme,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: TextField(
+                      child: _buildModernTextField(
                         controller: noteController,
-                        decoration: const InputDecoration(
-                          labelText: 'Phone / Note',
-                          hintText: 'eg: 9876543210',
-                          border: OutlineInputBorder(),
-                        ),
+                        label: 'Phone / Note',
+                        hint: 'eg: 9876543210',
+                        icon: Icons.notes_rounded,
+                        isDark: isDark,
+                        scheme: scheme,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
 
                 SizedBox(
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary, foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: scheme.primary,
+                      foregroundColor: isDark ? Colors.black : Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
                     onPressed: () {
                       if (venueController.text.trim().isEmpty) return;
 
@@ -627,15 +1007,11 @@ class _WorksPageState extends State<WorksPage> {
                         status: isPaid ? 'Paid' : 'Pending',
                       );
 
-                      // വർക്ക് ലിസ്റ്റിലേക്ക് ആഡ് ചെയ്യുന്നു
                       context.read<CateringProvider>().addWork(newWork);
-
-                      // തലേദിവസം രാത്രി 8 മണിക്ക് ഓട്ടോമാറ്റിക് അലാറം ഷെഡ്യൂൾ ചെയ്യുന്നു
                       NotificationService.scheduleWorkReminder(newWork);
-
                       Navigator.pop(ctx);
                     },
-                    child: Text('Save Catering Work', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text('Save Catering Work', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                   ),
                 ),
               ],
@@ -659,13 +1035,17 @@ class _WorksPageState extends State<WorksPage> {
     String reportingTime = work.reportingTime;
     String selectedEventType = work.eventType;
 
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: Theme.of(context).cardColor,
+      backgroundColor: theme.cardColor,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => Padding(
@@ -673,7 +1053,7 @@ class _WorksPageState extends State<WorksPage> {
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
             left: 20,
             right: 20,
-            top: 20,
+            top: 10,
           ),
           child: SingleChildScrollView(
             child: Column(
@@ -683,24 +1063,36 @@ class _WorksPageState extends State<WorksPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Edit Catering Work', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                    Text(
+                      'Edit Catering Work',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: scheme.onSurface),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
 
-                TextField(
+                _buildModernTextField(
                   controller: venueController,
-                  decoration: const InputDecoration(labelText: 'Venue Name', border: OutlineInputBorder()),
+                  label: 'Venue Name',
+                  icon: Icons.storefront_outlined,
+                  isDark: isDark,
+                  scheme: scheme,
                 ),
                 const SizedBox(height: 10),
 
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
+                      child: _buildModernTextField(
                         controller: locationController,
-                        decoration: const InputDecoration(labelText: 'Location', border: OutlineInputBorder()),
+                        label: 'Location',
+                        icon: Icons.location_on_outlined,
+                        isDark: isDark,
+                        scheme: scheme,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -709,9 +1101,10 @@ class _WorksPageState extends State<WorksPage> {
                         value: ['Wedding', 'Reception', 'Birthday', 'Corporate', 'Other'].contains(selectedEventType)
                             ? selectedEventType
                             : 'Other',
-                        decoration: const InputDecoration(labelText: 'Event Type', border: OutlineInputBorder()),
+                        dropdownColor: theme.cardColor,
+                        decoration: _buildInputDecoration('Event Type', isDark, scheme),
                         items: ['Wedding', 'Reception', 'Birthday', 'Corporate', 'Other'].map((type) {
-                          return DropdownMenuItem(value: type, child: Text(type, style: TextStyle(fontSize: 13)));
+                          return DropdownMenuItem(value: type, child: Text(type, style: const TextStyle(fontSize: 13)));
                         }).toList(),
                         onChanged: (val) {
                           if (val != null) setModalState(() => selectedEventType = val);
@@ -726,6 +1119,7 @@ class _WorksPageState extends State<WorksPage> {
                   children: [
                     Expanded(
                       child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
                         onTap: () async {
                           final picked = await showDatePicker(
                             context: context,
@@ -738,19 +1132,20 @@ class _WorksPageState extends State<WorksPage> {
                           }
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade400),
-                            borderRadius: BorderRadius.circular(4),
+                            color: isDark ? scheme.surfaceContainerHighest.withOpacity(0.3) : const Color(0xFFF8FAF8),
+                            border: Border.all(color: scheme.outline.withOpacity(0.35)),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Event Date', style: TextStyle(fontSize: 10.5, color: Colors.grey)),
-                              const SizedBox(height: 2),
+                              Text('Event Date', style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[400] : Colors.grey[600])),
+                              const SizedBox(height: 3),
                               Text(
                                 '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
-                                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: scheme.onSurface),
                               ),
                             ],
                           ),
@@ -760,6 +1155,7 @@ class _WorksPageState extends State<WorksPage> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
                         onTap: () async {
                           final picked = await showTimePicker(
                             context: context,
@@ -770,19 +1166,20 @@ class _WorksPageState extends State<WorksPage> {
                           }
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade400),
-                            borderRadius: BorderRadius.circular(4),
+                            color: isDark ? scheme.surfaceContainerHighest.withOpacity(0.3) : const Color(0xFFF8FAF8),
+                            border: Border.all(color: scheme.outline.withOpacity(0.35)),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Reporting Time', style: TextStyle(fontSize: 10.5, color: Colors.grey)),
-                              const SizedBox(height: 2),
+                              Text('Reporting Time', style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[400] : Colors.grey[600])),
+                              const SizedBox(height: 3),
                               Text(
                                 reportingTime,
-                                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: scheme.onSurface),
                               ),
                             ],
                           ),
@@ -796,18 +1193,24 @@ class _WorksPageState extends State<WorksPage> {
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
+                      child: _buildModernTextField(
                         controller: amountController,
+                        label: 'Total (₹)',
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Total (₹)', border: OutlineInputBorder()),
+                        icon: Icons.currency_rupee_rounded,
+                        isDark: isDark,
+                        scheme: scheme,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: TextField(
+                      child: _buildModernTextField(
                         controller: advanceController,
+                        label: 'Received (₹)',
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Received (₹)', border: OutlineInputBorder()),
+                        icon: Icons.payments_outlined,
+                        isDark: isDark,
+                        scheme: scheme,
                       ),
                     ),
                   ],
@@ -817,27 +1220,38 @@ class _WorksPageState extends State<WorksPage> {
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
+                      child: _buildModernTextField(
                         controller: paxController,
-                        decoration: const InputDecoration(labelText: 'Pax / Plates', border: OutlineInputBorder()),
+                        label: 'Pax / Plates',
+                        icon: Icons.people_outline_rounded,
+                        isDark: isDark,
+                        scheme: scheme,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: TextField(
+                      child: _buildModernTextField(
                         controller: noteController,
-                        decoration: const InputDecoration(labelText: 'Phone / Note', border: OutlineInputBorder()),
+                        label: 'Phone / Note',
+                        icon: Icons.notes_rounded,
+                        isDark: isDark,
+                        scheme: scheme,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
 
                 SizedBox(
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary, foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: scheme.primary,
+                      foregroundColor: isDark ? Colors.black : Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
                     onPressed: () {
                       final total = double.tryParse(amountController.text) ?? work.amount;
                       final received = double.tryParse(advanceController.text) ?? (work.amount - work.balance);
@@ -857,15 +1271,11 @@ class _WorksPageState extends State<WorksPage> {
                         status: isPaid ? 'Paid' : 'Pending',
                       );
 
-                      // വിവരങ്ങൾ അപ്‌ഡേറ്റ് ചെയ്യുന്നു
                       context.read<CateringProvider>().updateWork(updated);
-
-                      // മാറ്റിയ തീയതിക്കനുസരിച്ച് നോട്ടിഫിക്കേഷൻ റീഷെഡ്യൂൾ ചെയ്യുന്നു
                       NotificationService.scheduleWorkReminder(updated);
-
                       Navigator.pop(ctx);
                     },
-                    child: Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                   ),
                 ),
               ],
@@ -876,26 +1286,87 @@ class _WorksPageState extends State<WorksPage> {
     );
   }
 
+  // --- Helper Methods & Delete Dialog ---
+  Widget _buildModernTextField({
+    required TextEditingController controller,
+    required String label,
+    String? hint,
+    IconData? icon,
+    TextInputType? keyboardType,
+    required bool isDark,
+    required ColorScheme scheme,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: TextStyle(fontSize: 13.5, color: scheme.onSurface),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+        hintText: hint,
+        hintStyle: TextStyle(fontSize: 12, color: isDark ? Colors.grey[600] : Colors.grey[400]),
+        prefixIcon: icon != null ? Icon(icon, size: 18, color: scheme.primary) : null,
+        filled: true,
+        fillColor: isDark ? scheme.surfaceContainerHighest.withOpacity(0.3) : const Color(0xFFF8FAF8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: scheme.outline.withOpacity(0.35)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: scheme.outline.withOpacity(0.35)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: scheme.primary, width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration(String label, bool isDark, ColorScheme scheme) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+      filled: true,
+      fillColor: isDark ? scheme.surfaceContainerHighest.withOpacity(0.3) : const Color(0xFFF8FAF8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: scheme.outline.withOpacity(0.35)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: scheme.outline.withOpacity(0.35)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: scheme.primary, width: 1.5),
+      ),
+    );
+  }
+
   void _showDeleteDialog(BuildContext context, String workId) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Delete Work?'),
-        content: Text('Are you sure you want to remove this catering record?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Work?'),
+        content: const Text('Are you sure you want to remove this catering record?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
             onPressed: () {
-              // വർക്ക് ഡിലീറ്റ് ചെയ്യുന്നു
               context.read<CateringProvider>().deleteWork(workId);
-
-              // ഷെഡ്യൂൾ ചെയ്ത നോട്ടിഫിക്കേഷൻ റദ്ദാക്കുന്നു
               NotificationService.cancelWorkReminder(workId);
-
               Navigator.pop(ctx);
             },
-            child: Text('Delete', style: TextStyle(color: Colors.white)),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
