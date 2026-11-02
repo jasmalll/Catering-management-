@@ -276,7 +276,7 @@ class _AnimatedValueText extends StatelessWidget {
       tween: Tween<double>(begin: 0, end: numeric),
       duration: const Duration(milliseconds: 850),
       curve: Curves.easeOutCubic,
-      builder: (context, current, _) => Text('$prefix${current.round()}', style: style, maxLines: maxLines, overflow: overflow),
+      builder: (context, current, _) => Text('$prefix${current.round()}', style: style),
     );
   }
 }
@@ -291,6 +291,6 @@ class _AnimatedMoneyText extends StatelessWidget {
     tween: Tween<double>(begin: 0, end: value),
     duration: const Duration(milliseconds: 950),
     curve: Curves.easeOutCubic,
-    builder: (context, current, _) => Text('$prefix${current.round()}', style: style, maxLines: maxLines, overflow: overflow),
+    builder: (context, current, _) => Text('$prefix${current.round()}', style: style),
   );
 }
