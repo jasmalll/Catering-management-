@@ -1,0 +1,12 @@
+CaterPro build repair notes
+
+Repairs made from the uploaded repository ZIP:
+- Removed unresolved Git merge conflict markers from works_page.dart, expenses_page.dart, and summary_page.dart.
+- Kept the local animation-oriented versions where the conflict had an animated alternative.
+- Removed the duplicate _showClearAllDataDialog declaration in summary_page.dart.
+- Added Flutter rendering imports for ScrollDirection in works_page.dart and expenses_page.dart.
+- Fixed dashboard AnimatedRotation turns type and added maxLines/overflow support to _AnimatedValueText.
+
+Important:
+- This environment did not have the Flutter SDK available, so a local `flutter analyze` / `flutter build web` could not be run.
+- Push this repaired project and check the GitHub Actions build before treating it as verified.
