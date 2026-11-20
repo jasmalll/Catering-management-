@@ -5,8 +5,45 @@ import '../providers/catering_provider.dart';
 import '../theme/caterpro_theme_controller.dart';
 import 'calendar_page.dart';
 
-class HomeDashboardPage extends StatelessWidget {
+class HomeDashboardPage extends StatefulWidget {
   const HomeDashboardPage({super.key});
+  @override
+  State<HomeDashboardPage> createState() => _HomeDashboardPageState();
+}
+
+class _HomeDashboardPageState extends State<HomeDashboardPage> {
+  DateTime? _selectedMonth; // null means All time
+
+  Future<void> _chooseMonth(BuildContext context, CateringProvider provider) async {
+    final months = provider.moneyFlowMonths;
+    final selected = await showDialog<DateTime>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Select month'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 320,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: months.length,
+            itemBuilder: (context, index) {
+              final month = months[index];
+              final active = _selectedMonth != null && _selectedMonth!.year == month.year && _selectedMonth!.month == month.month;
+              return ListTile(
+                title: Text('${_monthName(month.month)} ${month.year}'),
+                trailing: active ? Icon(Icons.check_circle_rounded, color: Theme.of(context).colorScheme.primary) : null,
+                onTap: () => Navigator.pop(dialogContext, month),
+              );
+            },
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel'))],
+      ),
+    );
+    if (selected != null && mounted) setState(() => _selectedMonth = selected);
+  }
+
+  static String _monthName(int month) => const ['January','February','March','April','May','June','July','August','September','October','November','December'][month - 1];
 
   String _money(double amount) => '₹${amount.toStringAsFixed(0)}';
 
@@ -19,6 +56,11 @@ class HomeDashboardPage extends StatelessWidget {
     final pending = provider.pendingAmount;
     final expenses = provider.totalExpenses;
     final cashInHand = received - expenses;
+    final flow = provider.moneyFlowForMonth(_selectedMonth);
+    final flowIncome = flow['income']!;
+    final flowExpenses = flow['expenses']!;
+    final flowSavings = flow['savings']!;
+    final flowPending = flow['pending']!;
     final totalIncome = provider.totalIncome;
     final works = provider.works.toList()..sort((a, b) => b.date.compareTo(a.date));
     final recentWorks = works.take(4).toList();
@@ -108,6 +150,13 @@ class HomeDashboardPage extends StatelessWidget {
                     ]),
                   ]),
                 ),
+                const SizedBox(height: 18),
+                _MoneyFlowCard(
+                  selectedMonth: _selectedMonth,
+                  income: flowIncome, expenses: flowExpenses, savings: flowSavings, pending: flowPending,
+                  onSelectAll: () => setState(() => _selectedMonth = null),
+                  onSelectMonths: () => _chooseMonth(context, provider),
+                ),
                 const SizedBox(height: 24),
                 const _SectionHeading(title: 'Financial snapshot', subtitle: 'Your numbers at a glance'),
                 const SizedBox(height: 13),
@@ -172,6 +221,112 @@ class HomeDashboardPage extends StatelessWidget {
       ),
     );
   }
+}
+
+class _MoneyFlowCard extends StatelessWidget {
+  const _MoneyFlowCard({required this.selectedMonth, required this.income, required this.expenses, required this.savings, required this.pending, required this.onSelectAll, required this.onSelectMonths});
+  final DateTime? selectedMonth;
+  final double income, expenses, savings, pending;
+  final VoidCallback onSelectAll, onSelectMonths;
+
+  String _money(double value) => '₹${value.round()}';
+  String _percent(double value) => income > 0 ? '${(value / income * 100).round()}%' : '0%';
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const green = Color(0xFF16865B);
+    const red = Color(0xFFD94F4F);
+    const blue = Color(0xFF3979E8);
+    const orange = Color(0xFFE6A02E);
+    return _SurfaceCard(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Icon(Icons.bar_chart_rounded, color: theme.colorScheme.onSurface, size: 22),
+        const SizedBox(width: 9),
+        Expanded(child: Text('Monthly Money Flow', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+        PopupMenuButton<String>(
+          tooltip: 'Choose all time or a month',
+          onSelected: (value) { if (value == 'all') onSelectAll(); if (value == 'months') onSelectMonths(); },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'all', child: Row(children: [Icon(Icons.all_inclusive_rounded, size: 19), SizedBox(width: 10), Text('All') ])),
+            PopupMenuItem(value: 'months', child: Row(children: [Icon(Icons.calendar_month_rounded, size: 19), SizedBox(width: 10), Text('Months') ])),
+          ],
+          child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9), decoration: BoxDecoration(color: theme.colorScheme.primary.withOpacity(.08), borderRadius: BorderRadius.circular(24), border: Border.all(color: theme.colorScheme.primary.withOpacity(.25))), child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Text(selectedMonth == null ? 'All' : '${_monthLabel(selectedMonth!.month)} ${selectedMonth!.year}', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(width: 7), const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
+          ])),
+        ),
+      ]),
+      const SizedBox(height: 18),
+      Row(children: [
+        Expanded(flex: 5, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(_money(income), maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -.8)),
+          const SizedBox(height: 4), Text('Total Income', style: theme.textTheme.bodySmall?.copyWith(color: theme.textTheme.bodySmall?.color?.withOpacity(.72))),
+        ])),
+        SizedBox(width: 104, height: 104, child: CustomPaint(painter: _MoneyFlowDonutPainter(values: [expenses, savings > 0 ? savings : 0, pending], colors: [red, blue, orange], trackColor: theme.dividerColor.withOpacity(.5)), child: Center(child: Text('100%', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900))))),
+        const SizedBox(width: 12),
+        Expanded(flex: 6, child: Column(children: [
+          _MoneyFlowLegend(label: 'Income', amount: _money(income), percent: '100%', color: green),
+          const SizedBox(height: 9),
+          _MoneyFlowLegend(label: 'Expenses', amount: _money(expenses), percent: _percent(expenses), color: red),
+          const SizedBox(height: 9),
+          _MoneyFlowLegend(label: 'Savings', amount: _money(savings), percent: _percent(savings), color: blue),
+          const SizedBox(height: 9),
+          _MoneyFlowLegend(label: 'Pending', amount: _money(pending), percent: _percent(pending), color: orange),
+        ])),
+      ]),
+      if (savings < 0) Padding(padding: const EdgeInsets.only(top: 10), child: Text('Expenses exceed received payments by ${_money(savings.abs())}.', style: theme.textTheme.bodySmall?.copyWith(color: red))),
+    ]));
+  }
+
+  static String _monthLabel(int month) => const ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month - 1];
+}
+
+class _MoneyFlowLegend extends StatelessWidget {
+  const _MoneyFlowLegend({required this.label, required this.amount, required this.percent, required this.color});
+  final String label, amount, percent; final Color color;
+  @override
+  Widget build(BuildContext context) => FittedBox(
+    fit: BoxFit.scaleDown,
+    alignment: Alignment.centerLeft,
+    child: Row(mainAxisSize: MainAxisSize.min, children: [
+      Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+      const SizedBox(width: 5),
+      Text(label, style: Theme.of(context).textTheme.bodySmall),
+      const SizedBox(width: 6),
+      Text(amount, style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800)),
+      const SizedBox(width: 4),
+      Text(percent, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w800)),
+    ]),
+  );
+}
+
+class _MoneyFlowDonutPainter extends CustomPainter {
+  _MoneyFlowDonutPainter({required this.values, required this.colors, required this.trackColor});
+  final List<double> values; final List<Color> colors; final Color trackColor;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final stroke = size.width * .14;
+    final center = rect.center;
+    final radius = (size.width - stroke) / 2;
+    final bounds = Rect.fromCircle(center: center, radius: radius);
+    final track = Paint()..color = trackColor..style = PaintingStyle.stroke..strokeWidth = stroke;
+    canvas.drawCircle(center, radius, track);
+    final total = values.fold<double>(0, (a, b) => a + (b > 0 ? b : 0));
+    if (total <= 0) return;
+    var start = -1.57079632679;
+    for (var i = 0; i < values.length; i++) {
+      final value = values[i] > 0 ? values[i] : 0;
+      if (value == 0) continue;
+      final sweep = value / total * 6.28318530718;
+      final paint = Paint()..color = colors[i]..style = PaintingStyle.stroke..strokeWidth = stroke..strokeCap = StrokeCap.butt;
+      canvas.drawArc(bounds, start, sweep, false, paint);
+      start += sweep;
+    }
+  }
+  @override
+  bool shouldRepaint(covariant _MoneyFlowDonutPainter oldDelegate) => values != oldDelegate.values || colors != oldDelegate.colors || trackColor != oldDelegate.trackColor;
 }
 
 class _HeaderIcon extends StatelessWidget {

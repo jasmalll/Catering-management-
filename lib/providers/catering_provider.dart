@@ -214,6 +214,48 @@ class CateringProvider extends ChangeNotifier {
   double get pendingPct => totalIncome > 0 ? (pendingAmount / totalIncome) * 100 : 0.0;
   double get savingsPct => totalIncome > 0 ? (currentSavings / totalIncome) * 100 : 0.0;
 
+  /// Financial totals for the dashboard Money Flow card.
+  /// Work income/pending are grouped by work date; expenses by expense date.
+  Map<String, double> moneyFlowForMonth(DateTime? month) {
+    final selectedWorks = month == null
+        ? _works
+        : _works.where((w) => w.date.year == month.year && w.date.month == month.month).toList();
+    final selectedExpenses = month == null
+        ? _expenses
+        : _expenses.where((e) => e.date.year == month.year && e.date.month == month.month).toList();
+
+    final income = selectedWorks.fold<double>(0, (sum, w) => sum + w.amount);
+    final pending = selectedWorks.fold<double>(0, (sum, w) => sum + (w.isPaid ? 0 : w.balance));
+    final received = income - pending;
+    final expenseTotal = selectedExpenses.fold<double>(0, (sum, e) => sum + e.amount);
+    final savings = received - expenseTotal;
+    return {
+      'income': income,
+      'received': received,
+      'expenses': expenseTotal,
+      'savings': savings,
+      'pending': pending,
+    };
+  }
+
+  /// Months with data, newest first. Current month is included for convenience.
+  List<DateTime> get moneyFlowMonths {
+    final keys = <String, DateTime>{};
+    for (final w in _works) {
+      final d = DateTime(w.date.year, w.date.month);
+      keys['${d.year}-${d.month}'] = d;
+    }
+    for (final e in _expenses) {
+      final d = DateTime(e.date.year, e.date.month);
+      keys['${d.year}-${d.month}'] = d;
+    }
+    final now = DateTime.now();
+    final current = DateTime(now.year, now.month);
+    keys['${current.year}-${current.month}'] = current;
+    final result = keys.values.toList()..sort((a, b) => b.compareTo(a));
+    return result;
+  }
+
   int get travelCount => _expenses.where((e) => e.category.toLowerCase() == 'travel').length;
   int get foodCount => _expenses.where((e) => e.category.toLowerCase() == 'food').length;
 
