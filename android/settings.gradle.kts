@@ -23,14 +23,4 @@ plugins {
     id("org.jetbrains.kotlin.android") version "2.4.0" apply false
 }
 
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-    val storageUrl: String = System.getenv("FLUTTER_STORAGE_BASE_URL") ?: "https://storage.googleapis.com"
-    repositories {
-        google()
-        mavenCentral()
-        maven("$storageUrl/download.flutter.io")
-    }
-}
-
 include(":app")
