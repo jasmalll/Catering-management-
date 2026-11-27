@@ -377,6 +377,26 @@ class _SummaryPageState extends State<SummaryPage> {
                 ),
               ),
             ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 52,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: colors.primary,
+                  side: BorderSide(color: colors.primary.withOpacity(0.55)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                ),
+                onPressed: () => PdfService.exportAllWorksReport(
+                  works: provider.works,
+                  expenses: provider.expenses,
+                ),
+                icon: const Icon(Icons.library_books_rounded, size: 20),
+                label: const Text(
+                  'Export All Works PDF',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
             // 7. Works Breakdown List
             _SectionTitle(

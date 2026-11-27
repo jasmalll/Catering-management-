@@ -86,9 +86,18 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
               sliver: SliverList(delegate: SliverChildListDelegate([
                 Row(children: [
                   Container(
-                    width: 46, height: 46,
-                    decoration: BoxDecoration(color: const Color(0xFF142B3A), borderRadius: BorderRadius.circular(15)),
-                    child: const Icon(Icons.restaurant_menu_rounded, color: Colors.white, size: 23),
+                    width: 50, height: 50,
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF071B33),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE7B84F), width: 1.2),
+                      boxShadow: [BoxShadow(color: const Color(0xFF071B33).withOpacity(.16), blurRadius: 12, offset: const Offset(0, 5))],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.asset('assets/branding/caterpro_mark.png', fit: BoxFit.contain),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
